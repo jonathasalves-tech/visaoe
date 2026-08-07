@@ -1,114 +1,91 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Inicializa todos os módulos de acessibilidade
   initFontSizeControls();
   initHighContrastToggle();
-  initFocusManager();
+  initMagnifierToggle();
+  initFormValidation();
 });
 
-/**
- * 1. Controle do Tamanho da Fonte (Aumentar / Diminuir / Resetar)
- */
+// 1. Controle de Tamanho da Fonte
 function initFontSizeControls() {
-  const rootElement = document.documentElement;
-  let currentSizePercent = 100; // Tamanho base (100%)
-  const step = 10;              // Incremento de 10%
-  const minSize = 80;
-  const maxSize = 150;
+  let currentSize = 100;
+  const root = document.documentElement;
 
-  const btnIncrease = document.getElementById('btn-increase-font');
-  const btnDecrease = document.getElementById('btn-decrease-font');
-  const btnReset = document.getElementById('btn-reset-font');
+  document.getElementById('btn-increase-font')?.addEventListener('click', () => {
+    if (currentSize < 150) {
+      currentSize += 10;
+      root.style.fontSize = `${currentSize}%`;
+      announceToScreenReader(`Tamanho do texto aumentado para ${currentSize}%`);
+    }
+  });
 
-  if (btnIncrease) {
-    btnIncrease.addEventListener('click', () => {
-      if (currentSizePercent < maxSize) {
-        currentSizePercent += step;
-        updateFontSize();
-        announceToScreenReader(`Tamanho da fonte aumentado para ${currentSizePercent}%`);
-      }
-    });
-  }
+  document.getElementById('btn-decrease-font')?.addEventListener('click', () => {
+    if (currentSize > 80) {
+      currentSize -= 10;
+      root.style.fontSize = `${currentSize}%`;
+      announceToScreenReader(`Tamanho do texto diminuído para ${currentSize}%`);
+    }
+  });
 
-  if (btnDecrease) {
-    btnDecrease.addEventListener('click', () => {
-      if (currentSizePercent > minSize) {
-        currentSizePercent -= step;
-        updateFontSize();
-        announceToScreenReader(`Tamanho da fonte diminuído para ${currentSizePercent}%`);
-      }
-    });
-  }
-
-  if (btnReset) {
-    btnReset.addEventListener('click', () => {
-      currentSizePercent = 100;
-      updateFontSize();
-      announceToScreenReader('Tamanho da fonte restaurado para o padrão');
-    });
-  }
-
-  function updateFontSize() {
-    rootElement.style.fontSize = `${currentSizePercent}%`;
-  }
-}
-
-/**
- * 2. Alternador de Tema de Alto Contraste
- */
-function initHighContrastToggle() {
-  const contrastBtn = document.getElementById('btn-contrast-toggle');
-  
-  if (!contrastBtn) return;
-
-  contrastBtn.addEventListener('click', () => {
-    const isHighContrast = document.body.classList.toggle('high-contrast');
-    
-    // Atualiza o estado ARIA para leitores de tela
-    contrastBtn.setAttribute('aria-pressed', isHighContrast);
-
-    const statusMessage = isHighContrast 
-      ? 'Modo de alto contraste ativado' 
-      : 'Modo de alto contraste desativado';
-
-    announceToScreenReader(statusMessage);
+  document.getElementById('btn-reset-font')?.addEventListener('click', () => {
+    currentSize = 100;
+    root.style.fontSize = '100%';
+    announceToScreenReader('Tamanho do texto restaurado ao padrão');
   });
 }
 
-/**
- * 3. Gerenciamento de Foco Teclado (Tecla Esc fecha modais/menús)
- */
-function initFocusManager() {
-  document.addEventListener('keydown', (event) => {
-    // Permite fechar componentes ativos apertando 'ESC'
-    if (event.key === 'Escape') {
-      const activeModal = document.querySelector('[role="dialog"][aria-hidden="false"]');
-      if (activeModal) {
-        activeModal.setAttribute('aria-hidden', 'true');
-        announceToScreenReader('Janela modal fechada');
-      }
+// 2. Toggle de Alto Contraste
+function initHighContrastToggle() {
+  const btn = document.getElementById('btn-contrast-toggle');
+  btn?.addEventListener('click', () => {
+    const isContrast = document.body.classList.toggle('high-contrast');
+    btn.setAttribute('aria-pressed', isContrast);
+    announceToScreenReader(isContrast ? 'Alto contraste ativado' : 'Alto contraste desativado');
+  });
+}
+
+// 3. Toggle do Modo Lupa
+function initMagnifierToggle() {
+  const btn = document.getElementById('btn-magnifier-toggle');
+  btn?.addEventListener('click', () => {
+    const isMagnifier = document.body.classList.toggle('magnifier-active');
+    btn.setAttribute('aria-pressed', isMagnifier);
+    announceToScreenReader(isMagnifier ? 'Modo Lupa ativado. Passe o mouse ou foca nos textos para ampliar.' : 'Modo Lupa desativado');
+  });
+}
+
+// 4. Validação de Formulário Acessível
+function initFormValidation() {
+  const form = document.getElementById('meu-formulario');
+  if (!form) return;
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nome = document.getElementById('nome');
+    const erroNome = document.getElementById('erro-nome');
+
+    if (!nome.value.trim()) {
+      nome.setAttribute('aria-invalid', 'true');
+      erroNome.textContent = 'Por favor, preencha o campo nome.';
+      announceToScreenReader('Erro no formulário: O campo nome é obrigatório.');
+      nome.focus();
+    } else {
+      nome.removeAttribute('aria-invalid');
+      erroNome.textContent = '';
+      announceToScreenReader('Formulário enviado com sucesso!');
+      alert('Formulário enviado!');
     }
   });
 }
 
-/**
- * 4. Função Utilitária: Anúncio dinâmico para Leitores de Tela (ARIA Live Region)
- */
+// Utilitário para Leitores de Tela
 function announceToScreenReader(message) {
-  let liveRegion = document.getElementById('a11y-status-announcer');
-
-  // Se a região de anúncio ainda não existir no HTML, cria dinamica e invisível
+  let liveRegion = document.getElementById('a11y-announcer');
   if (!liveRegion) {
     liveRegion = document.createElement('div');
-    liveRegion.id = 'a11y-status-announcer';
+    liveRegion.id = 'a11y-announcer';
     liveRegion.setAttribute('aria-live', 'polite');
-    liveRegion.setAttribute('aria-atomic', 'true');
-    liveRegion.className = 'sr-only'; // Classe CSS para esconder visualmente
+    liveRegion.className = 'sr-only';
     document.body.appendChild(liveRegion);
   }
-
-  // Atualiza o texto para o leitor de tela vozear
-  liveRegion.textContent = '';
-  setTimeout(() => {
-    liveRegion.textContent = message;
-  }, 100);
+  liveRegion.textContent = message;
 }
